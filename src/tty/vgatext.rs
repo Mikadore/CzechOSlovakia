@@ -139,7 +139,7 @@ pub fn write_at(pos: (usize, usize), src: &[Character]) {
     unsafe {
         crate::memio::vmemwrite(
             (0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64,
-            crate::memio::byte_slice(src),
+            crate::memio::cast_slice(src),
             src.len() * 2,
         )
     }
@@ -168,12 +168,15 @@ pub fn write_default_at(pos: (usize, usize), src: &[u8], color: Color) {
     }
 }
 
-pub fn writechar(pos: (usize,usize), char: Character) {
+pub fn writechar(pos: (usize, usize), char: Character) {
     if pos.0 >= WIDTH || pos.1 >= HEIGHT {
         panic!("writechar(({},{}), {{character}})", pos.0, pos.1)
     }
     unsafe {
-        memio::vwrite((0xb8000 + (pos.0 + pos.1*WIDTH)*2) as u64, char.ascii());
-        memio::vwrite((0xb8001 + (pos.0 + pos.1*WIDTH)*2) as u64, char.color().into());
+        memio::vwrite((0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64, char.ascii());
+        memio::vwrite(
+            (0xb8001 + (pos.0 + pos.1 * WIDTH) * 2) as u64,
+            char.color().into(),
+        );
     }
 }

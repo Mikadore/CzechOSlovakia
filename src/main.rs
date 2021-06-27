@@ -23,7 +23,7 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     kprintln!("Hello {}", "World!");
-    
+
     #[allow(clippy::empty_loop)]
     loop {}
 }
