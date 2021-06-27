@@ -62,6 +62,11 @@ impl TTY {
         self.flush()
     }
 
+    pub fn put(&mut self, pos: (usize, usize), c: Character) {
+        self.buff[pos.0 + pos.1*vgatext::WIDTH] = c;
+        vgatext::writechar(pos, c);
+    }
+
     pub fn clear(&mut self) {
         self.buff.fill(Character::blank());
         self.flush();
@@ -79,7 +84,7 @@ impl core::fmt::Write for TTY {
         if s.is_ascii() {
             self.putstr(s.as_bytes());
         } else {
-            panic!("write_str({string}): Writing non ascii string");
+            panic!("{}", "write_str({string}): Writing non ascii string");
         }
         Ok(())
     }
