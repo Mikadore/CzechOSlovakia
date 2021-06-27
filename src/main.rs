@@ -20,6 +20,7 @@ fn panic(info: &PanicInfo) -> ! {
     loop {}
 }
 
+/// Kernel entry point
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     kprintln!("Hello {}", "World!");
