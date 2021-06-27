@@ -71,7 +71,7 @@ pub unsafe fn vmemwrite_iter(address: u64, mut src: impl Iterator<Item = u8>, co
     while i < count {
         match src.next() {
             Some(b) => {
-                (address as *mut u8).add(i).write_volatile(b.into());
+                (address as *mut u8).add(i).write_volatile(b);
             }
             None => {
                 panic!(
