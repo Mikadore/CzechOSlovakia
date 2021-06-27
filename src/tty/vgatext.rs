@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+/// VGA 4 Bit Colors
 #[repr(u8)]
 pub enum TextColor {
     Black = 0x0,
@@ -44,31 +45,39 @@ impl From<u8> for TextColor {
     }
 }
 
+/// VGA Color Point
+/// Consists of a 4 bit VGA foreground and background color
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Color(u8);
 
 impl Color {
+    /// Constructs a new Color from a fore and background color
     pub fn new(fore: TextColor, back: TextColor) -> Color {
         Color((back as u8) << 4 | (fore as u8))
     }
 
+    /// The default TTY Color, white on black
     pub fn default() -> Color {
         Self::new(TextColor::White, TextColor::Black)
     }
 
+    /// Constructs a new Color from a foreground, the background is black
     pub fn from_fore(c: TextColor) -> Color {
-        Self::new(c, TextColor::White)
+        Self::new(c, TextColor::Black)
     }
 
+    /// Constructs a new Color from a background, the foreground is white
     pub fn from_back(c: TextColor) -> Color {
         Self::new(TextColor::White, c)
     }
 
+    /// The foreground of the Color
     pub fn fore(&self) -> TextColor {
         TextColor::from(self.0)
     }
 
+    /// The background of the Color
     pub fn back(&self) -> TextColor {
         TextColor::from(self.0 >> 4)
     }
@@ -80,6 +89,9 @@ impl From<Color> for u8 {
     }
 }
 
+/// VGA Character Point
+/// Consists of an ASCII (Code Page 437) character and a Color
+/// The layout is the same as the physical code point in VGA Ram
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Character {
@@ -88,17 +100,22 @@ pub struct Character {
 }
 
 impl Character {
+    /// Constructs a new VGA Character from a Color and the ASCII character
     pub fn new(ascii: u8, color: Color) -> Character {
         Character { ascii, color }
     }
 
+    /// Constructs a new VGA Character from an ASCII character
+    /// The Color is left as the default Color, i.e. white on black 
     pub fn from_ascii(ascii: u8) -> Character {
         Character {
             ascii,
-            color: Color::new(TextColor::White, TextColor::Black),
+            color: Color::default(),
         }
     }
 
+    /// The blank character.
+    /// A black space character.
     pub fn blank() -> Character {
         Character {
             ascii: b' ',
@@ -106,10 +123,12 @@ impl Character {
         }
     }
 
+    /// The Color
     pub fn color(&self) -> Color {
         self.color
     }
 
+    /// The ascii character
     pub fn ascii(&self) -> u8 {
         self.ascii
     }
@@ -121,9 +140,14 @@ impl From<u8> for Character {
     }
 }
 
+/// The VGA display buffer height
 pub const HEIGHT: usize = 25;
+/// The VGA display buffer width
 pub const WIDTH: usize = 80;
 
+/// Write a slice of characters, starting from a specific character.
+/// Panics if the pos is invalid, or the characters would go
+/// out of bounds.
 pub fn write_at(pos: (usize, usize), src: &[Character]) {
     if pos.0 >= WIDTH
         || pos.1 >= HEIGHT
@@ -145,7 +169,10 @@ pub fn write_at(pos: (usize, usize), src: &[Character]) {
     }
 }
 
-pub fn write_default_at(pos: (usize, usize), src: &[u8], color: Color) {
+/// Write a slice of ascii characters, all of the same specified color,
+/// starting at a specific character. Panics if the pos is invalid,
+/// or the characters would go out of bounds
+pub fn write_color_at(pos: (usize, usize), src: &[u8], color: Color) {
     if pos.0 >= WIDTH
         || pos.1 >= HEIGHT
         || pos.0 + pos.1 * WIDTH + (src.len() - 1) >= WIDTH * HEIGHT
@@ -168,6 +195,7 @@ pub fn write_default_at(pos: (usize, usize), src: &[u8], color: Color) {
     }
 }
 
+/// Write a single character to a position. Panics if said position is invalid
 pub fn writechar(pos: (usize, usize), char: Character) {
     if pos.0 >= WIDTH || pos.1 >= HEIGHT {
         panic!("writechar(({},{}), {{character}})", pos.0, pos.1)
