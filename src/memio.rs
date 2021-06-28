@@ -1,5 +1,4 @@
 /// Cast a POD to a byte slice of itself
-///
 /// # Safety
 /// You *must* know the alignment of T precisely.
 /// Any padding bytes will mess up your plans.
@@ -9,7 +8,6 @@ pub unsafe fn cast_pod<T>(src: &T) -> &[u8] {
 }
 
 /// Cast a slice to a byte slice of itself
-///
 /// # Safety
 /// The same requirements for T apply:
 /// You *must* know the alignment of T precisely.
@@ -22,26 +20,20 @@ pub unsafe fn cast_slice<T>(src: &[T]) -> &[u8] {
     )
 }
 
-/// volatile write
-///
 /// Write a byte to `address`
 /// # Safety
 /// Make sure the address you write to is correct.
-pub unsafe fn vwrite(address: u64, val: u8) {
+pub unsafe fn vputb(address: u64, val: u8) {
     (address as *mut u8).write_volatile(val);
 }
 
-/// volatile read
-///
 /// Read a byte from `address`.
 /// # Safety
 /// Make sure the address you read from is correct.
-pub unsafe fn vread(address: u64) -> u8 {
+pub unsafe fn vinb(address: u64) -> u8 {
     (address as *mut u8).read_volatile()
 }
 
-/// volatile memory write
-///
 /// Write `count` bytes from `src` into `address`.
 /// # Safety
 /// Make sure the address you write to and the count are correct.
@@ -60,8 +52,6 @@ pub unsafe fn vmemwrite(address: u64, src: &[u8], count: usize) {
     }
 }
 
-/// volatile memory write, iterator
-///
 /// Use this if you can't use `vmemwrite`.
 /// Write `count` bytes from an iterator `src` into `address`.
 /// # Safety
@@ -84,8 +74,6 @@ pub unsafe fn vmemwrite_iter(address: u64, mut src: impl Iterator<Item = u8>, co
     }
 }
 
-/// volatile memory read
-///
 /// Read `count` bytes from `address` into a buffer `dst`.
 /// # Safety
 /// Make sure that the address you read from and the count are correct.
@@ -103,3 +91,12 @@ pub unsafe fn vmemread(address: u64, dst: &mut [u8], count: usize) {
         }
     }
 }
+
+/// Sets `count` bytes at `address` to `val`
+/// # Safety
+/// Make sure that the address you write to is correct.
+pub unsafe fn vmemset(address: u64, val: u8, count: usize) {
+    for i in 0..count {
+        (address as *mut u8).add(i).write_volatile(val)
+    }
+} 
