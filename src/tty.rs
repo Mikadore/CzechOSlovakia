@@ -40,9 +40,9 @@ pub use vgatext::TextColor;
 ///     tty.set_pos((19,12));
 ///     tty.flush()
 /// }
-/// 
-/// 
-/// 
+///
+///
+///
 /// kprint!("VGA Display: {}x{} Characters with: ", x, y);
 /// let mut tty = tty::tty().lock();
 /// tty.append_char(tty::Character::new(
@@ -83,6 +83,7 @@ pub struct TTY {
 impl TTY {
     /// Creates a TTY, which DOES NOT sync with the screen.
     /// It's used to `tty.sync(tty_copy)` with the actually tty
+    #[allow(clippy::new_without_default)]
     pub fn new() -> TTY {
         TTY {
             pos: 0,
@@ -289,7 +290,7 @@ impl TTY {
                 self.append_char(Character::from_ascii(b));
             }
         } else {
-            for &b in &c[c.len() - (count*vgatext::WIDTH*vgatext::HEIGHT)..] {
+            for &b in &c[c.len() - (count * vgatext::WIDTH * vgatext::HEIGHT)..] {
                 self.append_char(Character::from_ascii(b))
             }
         }
@@ -339,7 +340,7 @@ impl TTY {
     }
 }
 
-pub fn format_apply<'a, F>(apply: F, args: core::fmt::Arguments<'a>) -> core::fmt::Result
+pub fn format_apply<F>(apply: F, args: core::fmt::Arguments<'_>) -> core::fmt::Result
 where
     F: FnMut(&str) -> core::fmt::Result,
 {
@@ -357,12 +358,15 @@ where
 
 lazy_static::lazy_static!(
     /// Thread safe, static handle to the TTY
-    static ref TTY_INSTANCE: spin::Mutex<TTY> = spin::Mutex::<TTY>::from(TTY {
-        pos: 0,
-        col: TextColor::default(),
-        buff: [Character::blank();2000],
-        is_copy: false
-    });
+    static ref TTY_INSTANCE: spin::Mutex<TTY> = spin::Mutex::<TTY>::from((|| { 
+        vgatext::vga_init();
+        TTY {
+            pos: 0,
+            col: TextColor::default(),
+            buff: [Character::blank();2000],
+            is_copy: false
+        }
+    })());
 );
 
 pub fn tty() -> &'static spin::Mutex<TTY> {

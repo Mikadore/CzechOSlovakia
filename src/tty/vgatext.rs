@@ -107,7 +107,7 @@ impl Character {
     }
 
     /// Constructs a new VGA Character from an ASCII character
-    /// The Color is left as the default Color, i.e. white on black 
+    /// The Color is left as the default Color, i.e. white on black
     pub fn from_ascii(ascii: u8) -> Character {
         Character {
             ascii,
@@ -146,41 +146,77 @@ pub const HEIGHT: usize = 25;
 /// The VGA display buffer width
 pub const WIDTH: usize = 80;
 
+pub fn vga_init() {
+    unsafe {
+        // disable cursor
+        memio::mmio_outb(0x3D4, 0xA);
+        memio::mmio_outb(0x3D5, 0x20); 
+
+        // disable blinking
+        memio::mmio_inb(0x3DA);
+        memio::mmio_outb(0x3C0, 0x30);
+        let state = memio::mmio_inb(0x3C1);
+        memio::mmio_outb(0x3C0,  state & 0xF7);
+    }
+}
+
 /// Write a slice of characters, starting from a specific character.
 /// # Safety
 /// Validate that the position is valid, and that the characters fit
 pub unsafe fn write_at(pos: (usize, usize), src: &[Character]) {
-        crate::memio::vmemwrite(
-            (0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64,
-            crate::memio::cast_slice(src),
-            src.len() * 2,
-        )
+    crate::memio::vmemwrite(
+        (0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64,
+        crate::memio::cast_slice(src),
+        src.len() * 2,
+    )
 }
 
 /// Write a slice of ascii characters, all of the same specified color,
-/// starting at a specific character. 
+/// starting at a specific character.
 /// # Safety
 /// Validate that the position is in bounds, and that the string fits
 pub unsafe fn write_color_at(pos: (usize, usize), src: &[u8], color: TextColor) {
     let color = color.into();
     let baseaddr = (0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as *mut u8;
 
-        for (i, &b) in src.iter().enumerate() {
-            baseaddr.add(2 * i).write_volatile(b);
-            baseaddr.add(2 * i + 1).write_volatile(color);
-        }
+    for (i, &b) in src.iter().enumerate() {
+        baseaddr.add(2 * i).write_volatile(b);
+        baseaddr.add(2 * i + 1).write_volatile(color);
+    }
 }
 
-/// Write a single character to a position. 
+/// Write a single character to a position.
 /// # Safety
 /// Validate that he position is valid
 pub unsafe fn writechar(pos: (usize, usize), char: Character) {
-        memio::vwrite((0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64, &char);
+    memio::vwrite((0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64, &char);
 }
 
 /// Reset the video memory
 pub fn reset() {
     unsafe {
-        memio::vmemset(0xb8000, 0, WIDTH*HEIGHT*2);
+        memio::vmemset(0xb8000, 0, WIDTH * HEIGHT * 2);
     }
+}
+
+pub fn blink() -> bool {
+    let mut out: u64;
+    unsafe {
+        asm!("
+            mov dx, 0x03DA
+            in al, dx
+            mov dx, 0x03C0
+            mov al, 0x30
+            out dx, al
+            inc dx
+            in al, dx
+            and al, 0xF7
+            jz .VGA_BLINK_ON
+            mov {0}, 0
+        .VGA_BLINK_ON:
+            mov {0}, 1
+            ", out(reg) out
+        );
+    };
+    out == 1
 }

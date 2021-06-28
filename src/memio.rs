@@ -20,18 +20,24 @@ pub unsafe fn cast_slice<T>(src: &[T]) -> &[u8] {
     )
 }
 
-/// Write a byte to `address`
+/// Read a byte from an MMIO `port` 
 /// # Safety
-/// Validate that the address you write to is correct.
-pub unsafe fn vputb(address: u64, val: u8) {
-    (address as *mut u8).write_volatile(val);
+/// Validate that the port you write to is correct.
+pub unsafe fn mmio_outb(port: u16, val: u8) {
+    asm!("
+        out dx, al
+    ", in("dx") port, in("al") val);
 }
 
-/// Read a byte from `address`.
+/// Read a byte from an MMIO `port`.
 /// # Safety
-/// Validate that the address you read from is correct.
-pub unsafe fn vinb(address: u64) -> u8 {
-    (address as *mut u8).read_volatile()
+/// Validate that the port you read from is correct.
+pub unsafe fn mmio_inb(port: u16) -> u8 {
+    let mut out: u8;
+    asm!("
+        in al, dx
+    ", in("dx") port, out("al") out);
+    out
 }
 
 /// Write the bytes of `val` to `address
