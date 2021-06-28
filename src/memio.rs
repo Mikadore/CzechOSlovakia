@@ -22,21 +22,21 @@ pub unsafe fn cast_slice<T>(src: &[T]) -> &[u8] {
 
 /// Write a byte to `address`
 /// # Safety
-/// Make sure the address you write to is correct.
+/// Validate that the address you write to is correct.
 pub unsafe fn vputb(address: u64, val: u8) {
     (address as *mut u8).write_volatile(val);
 }
 
 /// Read a byte from `address`.
 /// # Safety
-/// Make sure the address you read from is correct.
+/// Validate that the address you read from is correct.
 pub unsafe fn vinb(address: u64) -> u8 {
     (address as *mut u8).read_volatile()
 }
 
 /// Write the bytes of `val` to `address
 /// # Safety  
-/// Make sure the address is correct.
+/// Validate that the address is correct.
 /// Make *really* sure the objects size is the corret amount of bytes to write,
 /// any padding bytes or other layout issues will mess this up.
 #[unroll::unroll_for_loops]
@@ -49,7 +49,7 @@ pub unsafe fn vwrite<T>(address: u64, val: &T) {
 
 /// Write `count` bytes from `src` into `address`.
 /// # Safety
-/// Make sure the address you write to and the count are correct.
+/// Validate that the address you write to and the count are correct.
 pub unsafe fn vmemwrite(address: u64, src: &[u8], count: usize) {
     if src.len() < count {
         panic!(
@@ -68,7 +68,7 @@ pub unsafe fn vmemwrite(address: u64, src: &[u8], count: usize) {
 /// Use this if you can't use `vmemwrite`.
 /// Write `count` bytes from an iterator `src` into `address`.
 /// # Safety
-/// Make sure that the address you write to and the count are correct.
+/// Validate that that the address you write to and the count are correct.
 pub unsafe fn vmemwrite_iter(address: u64, mut src: impl Iterator<Item = u8>, count: usize) {
     let mut i = 0;
     while i < count {
@@ -89,7 +89,7 @@ pub unsafe fn vmemwrite_iter(address: u64, mut src: impl Iterator<Item = u8>, co
 
 /// Read `count` bytes from `address` into a buffer `dst`.
 /// # Safety
-/// Make sure that the address you read from and the count are correct.
+/// Validate that that the address you read from and the count are correct.
 pub unsafe fn vmemread(address: u64, dst: &mut [u8], count: usize) {
     if dst.len() < count {
         panic!(
@@ -107,7 +107,7 @@ pub unsafe fn vmemread(address: u64, dst: &mut [u8], count: usize) {
 
 /// Sets `count` bytes at `address` to `val`
 /// # Safety
-/// Make sure that the address you write to is correct.
+/// Validate that that the address you write to is correct.
 pub unsafe fn vmemset(address: u64, val: u8, count: usize) {
     for i in 0..count {
         (address as *mut u8).add(i).write_volatile(val)
