@@ -34,6 +34,19 @@ pub unsafe fn vinb(address: u64) -> u8 {
     (address as *mut u8).read_volatile()
 }
 
+/// Write the bytes of `val` to `address
+/// # Safety  
+/// Make sure the address is correct.
+/// Make *really* sure the objects size is the corret amount of bytes to write,
+/// any padding bytes or other layout issues will mess this up.
+#[unroll::unroll_for_loops]
+pub unsafe fn vwrite<T>(address: u64, val: &T) {
+    let ptr = val as *const _ as *const u8;
+    for i in 0..core::mem::size_of::<T>() {
+        (address as *mut u8).add(i).write_volatile(ptr.add(i).read());
+    }
+}
+
 /// Write `count` bytes from `src` into `address`.
 /// # Safety
 /// Make sure the address you write to and the count are correct.
