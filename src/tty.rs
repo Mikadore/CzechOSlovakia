@@ -13,28 +13,28 @@ pub use vgatext::TextColor;
 /// Once the TTY is full, it acts as a FIFO, discarding the beginning bytes.
 pub struct TTY {
     pos: usize,
-    col: Color,
+    col: TextColor,
     buff: [Character; 2000],
 }
 
 impl TTY {
     /// Character buffer width of the TTY
-    pub fn width() -> usize {
+    pub fn width(&self) -> usize {
         vgatext::WIDTH
     }
 
     /// Character buffer height of the TTY
-    pub fn height() -> usize {
+    pub fn height(&self) -> usize {
         vgatext::HEIGHT
     }
 
     /// The default color used for printing characters
-    pub fn color(&self) -> Color {
+    pub fn color(&self) -> TextColor {
         self.col
     }
 
     /// Sets the default color to be used for printing
-    pub fn set_color(&mut self, col: Color) {
+    pub fn set_color(&mut self, col: TextColor) {
         self.col = col;
     }
 
@@ -54,8 +54,7 @@ impl TTY {
             if self.y() == vgatext::HEIGHT - 1 {
                 self.buff.rotate_left(vgatext::WIDTH);
                 self.buff[(vgatext::HEIGHT - 1) * vgatext::WIDTH..].fill(Character::blank());
-                self.buff[(vgatext::HEIGHT - 1) * vgatext::WIDTH] = c;
-                self.pos = (vgatext::HEIGHT - 1) * vgatext::WIDTH + 1;
+                self.pos = (vgatext::HEIGHT - 1) * vgatext::WIDTH ;
             } else {
                 self.pos = (self.y() + 1) * vgatext::WIDTH;
             }
@@ -102,9 +101,13 @@ impl TTY {
         self.buff[pos.0 + pos.1*vgatext::WIDTH]
     }
 
-    /// Clears the entire screen with the blank character and flushes it afterwards
-    pub fn clear(&mut self) {
-        self.buff.fill(Character::blank());
+    /// Clears the entire screen with the given character and flushes it afterwards
+    /// # Example
+    /// ```rust
+    /// tty.clear(tty::Character::blank())
+    /// ```
+    pub fn clear(&mut self, clear_char: Character) {
+        self.buff.fill(clear_char);
         self.flush();
         self.pos = 0;
     }
@@ -128,18 +131,24 @@ impl core::fmt::Write for TTY {
 
 lazy_static::lazy_static!(
     /// Thread safe, static handle to the TTY 
-    pub static ref SCREEN: spin::Mutex<TTY> = spin::Mutex::<TTY>::from(TTY{
+    static ref TTY_INSTANCE: spin::Mutex<TTY> = spin::Mutex::<TTY>::from(TTY{
         pos: 0,
-        col: Color::default(),
+        col: TextColor::default(),
         buff: [Character::blank();2000]
     });
 );
 
+pub fn tty() -> &'static spin::Mutex<TTY> {
+    &*TTY_INSTANCE
+}
 
 /// Mimics the `print!` macro, but acts on the TTY
 #[macro_export]
 macro_rules! kprint {
-    ($($arg:tt)*) => ($crate::tty::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ({
+        use core::fmt::Write;
+        $crate::tty::tty().lock().write_fmt(format_args!($($arg)*)).unwrap();
+    });
 }
 
 /// Mimics the `println!` macro, but acts on the TTY
@@ -147,11 +156,4 @@ macro_rules! kprint {
 macro_rules! kprintln {
     () => ($crate::print!("\n"));
     ($($arg:tt)*) => ($crate::kprint!("{}\n", format_args!($($arg)*)));
-}
-
-#[doc(hidden)]
-pub fn _print(args: core::fmt::Arguments) {
-    use core::fmt::Write;
-    // cannot fail
-    let _ = SCREEN.lock().write_fmt(args);
 }
