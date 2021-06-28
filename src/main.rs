@@ -8,14 +8,28 @@ pub mod tty;
 pub mod util;
 pub use prelude::*;
 
-use core::fmt::Write;
-use core::panic::PanicInfo;
-
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    let mut screen = tty::tty().lock();
-    screen.clear(tty::Character::blank());
-    let _ = write!(screen, "{}", info);
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    let mut i = 0;
+    let _ = tty::format_apply(
+        |s| {
+            for ch in s.as_bytes() {
+                if i == tty::vgatext::HEIGHT * tty::vgatext::WIDTH - 1 {
+                    #[allow(clippy::empty_loop)]
+                    loop {}
+                }
+                unsafe {
+                    tty::vgatext::writechar(
+                        (i % tty::vgatext::WIDTH, i / tty::vgatext::WIDTH),
+                        tty::vgatext::Character::from_ascii(*ch),
+                    )
+                };
+                i += 1;
+            }
+            Ok(())
+        },
+        format_args!("{}", info),
+    );
 
     #[allow(clippy::empty_loop)]
     loop {}
@@ -24,21 +38,7 @@ fn panic(info: &PanicInfo) -> ! {
 /// Kernel entry point
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    let (x,y) = {
-        let tty = tty::tty().lock();
-        (tty.width(), tty.height())
-    };
-    kprint!("VGA Display: {}x{} Characters with: ", x, y);
-    {
-        let mut tty = tty::tty().lock();
-        tty.cputchar(tty::Character::new(b'C', tty::TextColor::from_back(tty::Color::Red)));
-        tty.cputchar(tty::Character::new(b'O', tty::TextColor::from_back(tty::Color::LightRed)));
-        tty.cputchar(tty::Character::new(b'L', tty::TextColor::from_back(tty::Color::Yellow)));
-        tty.cputchar(tty::Character::new(b'O', tty::TextColor::from_back(tty::Color::Green)));
-        tty.cputchar(tty::Character::new(b'R', tty::TextColor::from_back(tty::Color::Blue)));
-        tty.cputchar(tty::Character::new(b'S', tty::TextColor::from_back(tty::Color::Magenta)));
-        tty.flush();
-    }
+
     #[allow(clippy::empty_loop)]
     loop {}
 }

@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 /// VGA 4 Bit Colors
 #[repr(u8)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Color {
     Black = 0x0,
     Gray = 0x8,
@@ -40,7 +41,7 @@ impl From<u8> for Color {
             0xe => Color::Yellow,
             0x7 => Color::LightGray,
             0xf => Color::White,
-            _ => panic!("Bad conversion to Color from {}", c),
+            _ => panic!("Color::from({}): Bad conversion to Color", c),
         }
     }
 }
@@ -146,65 +147,40 @@ pub const HEIGHT: usize = 25;
 pub const WIDTH: usize = 80;
 
 /// Write a slice of characters, starting from a specific character.
-/// Panics if the pos is invalid, or the characters would go
-/// out of bounds.
-pub fn write_at(pos: (usize, usize), src: &[Character]) {
-    if pos.0 >= WIDTH
-        || pos.1 >= HEIGHT
-        || pos.0 + pos.1 * WIDTH + (src.len() - 1) >= WIDTH * HEIGHT
-    {
-        panic!(
-            "write_at(({},{}), {{{}}}): invalid character location(s)",
-            pos.0,
-            pos.1,
-            src.len()
-        );
-    }
-    unsafe {
+/// # Safety
+/// Validate that the position is valid, and that the characters fit
+pub unsafe fn write_at(pos: (usize, usize), src: &[Character]) {
         crate::memio::vmemwrite(
             (0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64,
             crate::memio::cast_slice(src),
             src.len() * 2,
         )
-    }
 }
 
 /// Write a slice of ascii characters, all of the same specified color,
-/// starting at a specific character. Panics if the pos is invalid,
-/// or the characters would go out of bounds
-pub fn write_color_at(pos: (usize, usize), src: &[u8], color: TextColor) {
-    if pos.0 >= WIDTH
-        || pos.1 >= HEIGHT
-        || pos.0 + pos.1 * WIDTH + (src.len() - 1) >= WIDTH * HEIGHT
-    {
-        panic!(
-            "write_at(({},{}), {{{}}}, {{color}}): invalid character location(s)",
-            pos.0,
-            pos.1,
-            src.len()
-        );
-    }
+/// starting at a specific character. 
+/// # Safety
+/// Validate that the position is in bounds, and that the string fits
+pub unsafe fn write_color_at(pos: (usize, usize), src: &[u8], color: TextColor) {
     let color = color.into();
     let baseaddr = (0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as *mut u8;
 
-    unsafe {
         for (i, &b) in src.iter().enumerate() {
             baseaddr.add(2 * i).write_volatile(b);
             baseaddr.add(2 * i + 1).write_volatile(color);
         }
-    }
 }
 
-/// Write a single character to a position. Panics if said position is invalid
-pub fn writechar(pos: (usize, usize), char: Character) {
-    if pos.0 >= WIDTH || pos.1 >= HEIGHT {
-        panic!("writechar(({},{}), {{character}})", pos.0, pos.1)
-    }
+/// Write a single character to a position. 
+/// # Safety
+/// Validate that he position is valid
+pub unsafe fn writechar(pos: (usize, usize), char: Character) {
+        memio::vwrite((0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64, &char);
+}
+
+/// Reset the video memory
+pub fn reset() {
     unsafe {
-        memio::vwrite((0xb8000 + (pos.0 + pos.1 * WIDTH) * 2) as u64, char.ascii());
-        memio::vwrite(
-            (0xb8001 + (pos.0 + pos.1 * WIDTH) * 2) as u64,
-            char.color().into(),
-        );
+        memio::vmemset(0xb8000, 0, WIDTH*HEIGHT*2);
     }
 }
