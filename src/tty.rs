@@ -260,7 +260,6 @@ impl TTY {
     }
 
     /// Get the buffered character, NOT necessarily the currently displayed one.
-    /// Panics if the position is invalid.
     pub fn get(&mut self, pos: (usize, usize)) -> Character {
         self.buff[pos.0 + pos.1 * vgatext::WIDTH]
     }
@@ -345,10 +344,28 @@ impl TTY {
         self
     }
 
-    /// Copies `other`s buffer. DOES NOT flush itself.
+    /// Copies `other`s buffer. Does not flush the screen.
     pub fn sync(&mut self, other: &TTY) -> &mut Self {
         self.buff.copy_from_slice(&other.buff);
         self
+    }
+
+    /// Synchronizes internal buffer from `other`. Does not flush the screen
+    pub fn sync_buff(&mut self, other: &[Character]) -> &mut Self {
+        if other.len() != self.buff.len() {
+            panic!(
+                "TTY::sync_buff(0x{:x}, 0x{:x}): called with invalid size",
+                self.buff.as_ptr() as u64,
+                other.as_ptr() as u64
+            );
+        }
+        self.buff.copy_from_slice(other);
+        self
+    }
+
+    /// Access the character buffer
+    pub fn buff(&self) -> &[Character] {
+        &self.buff
     }
 
     /// Copies itself. New TTY Instance DOES NOT sync with Video RAM
@@ -401,7 +418,7 @@ macro_rules! kprint {
             if s.is_ascii() {
                 tty.append_str(s.as_bytes());
             } else {
-                panic!("kprint!: formatted string contains non-ascii characters");
+                panic!("kprint!(...): formatted string contains non-ascii characters");
             }
             Ok(())
         }, format_args!($($arg)*)).unwrap();
