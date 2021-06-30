@@ -150,13 +150,13 @@ pub fn vga_init() {
     unsafe {
         // disable cursor
         memio::mmio_outb(0x3D4, 0xA);
-        memio::mmio_outb(0x3D5, 0x20); 
+        memio::mmio_outb(0x3D5, 0x20);
 
         // disable blinking
         memio::mmio_inb(0x3DA);
         memio::mmio_outb(0x3C0, 0x30);
         let state = memio::mmio_inb(0x3C1);
-        memio::mmio_outb(0x3C0,  state & 0xF7);
+        memio::mmio_outb(0x3C0, state & 0xF7);
     }
 }
 

@@ -20,7 +20,7 @@ pub unsafe fn cast_slice<T>(src: &[T]) -> &[u8] {
     )
 }
 
-/// Read a byte from an MMIO `port` 
+/// Read a byte from an MMIO `port`
 /// # Safety
 /// Validate that the port you write to is correct.
 pub unsafe fn mmio_outb(port: u16, val: u8) {
@@ -49,7 +49,9 @@ pub unsafe fn mmio_inb(port: u16) -> u8 {
 pub unsafe fn vwrite<T>(address: u64, val: &T) {
     let ptr = val as *const _ as *const u8;
     for i in 0..core::mem::size_of::<T>() {
-        (address as *mut u8).add(i).write_volatile(ptr.add(i).read());
+        (address as *mut u8)
+            .add(i)
+            .write_volatile(ptr.add(i).read());
     }
 }
 
@@ -118,4 +120,4 @@ pub unsafe fn vmemset(address: u64, val: u8, count: usize) {
     for i in 0..count {
         (address as *mut u8).add(i).write_volatile(val)
     }
-} 
+}

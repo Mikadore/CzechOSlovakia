@@ -38,7 +38,18 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 /// Kernel entry point
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    tty::tty()
+        .lock()
+        .set_color(tty::TextColor::from_back(tty::Color::LightBlue))
+        .clear()
+        .flush();
 
+    for n in 0..25 {
+        for _ in 0..n {
+            kprint!("*");
+        }
+        kprintln!("");
+    }
     #[allow(clippy::empty_loop)]
     loop {}
 }

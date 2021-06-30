@@ -109,8 +109,9 @@ impl TTY {
 
     /// Sets the default color to be used for printing
     /// This color's background color will be used for clearing as well
-    pub fn set_color(&mut self, col: TextColor) {
+    pub fn set_color(&mut self, col: TextColor) -> &mut Self {
         self.col = col;
+        self
     }
 
     /// Returns the next position the k* tty macros will print at
@@ -119,16 +120,17 @@ impl TTY {
     }
 
     /// Overwrites the k* tty macro position, panics if pos is invalid
-    pub fn set_pos(&mut self, pos: (usize, usize)) {
+    pub fn set_pos(&mut self, pos: (usize, usize)) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!("set_pos(({},{})): invalid position", pos.0, pos.1);
         }
         self.pos = pos.0 + pos.1 * vgatext::WIDTH;
+        self
     }
 
     /// A convenience to write multile colored characters at once.
     /// Works with newlines.
-    pub fn cputstr(&mut self, pos: (usize, usize), str: &[Character]) {
+    pub fn cputstr(&mut self, pos: (usize, usize), str: &[Character]) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!(
                 "putstr(({},{}), {{string}}): invalid position",
@@ -159,11 +161,12 @@ impl TTY {
             }
             i += 1;
         }
+        self
     }
 
     /// A conveniece to write multiple ascii characters at once.
     /// Works with newlines.
-    pub fn putstr(&mut self, pos: (usize, usize), str: &[u8]) {
+    pub fn putstr(&mut self, pos: (usize, usize), str: &[u8]) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!(
                 "putstr(({},{}), {{string}}): invalid position",
@@ -195,10 +198,11 @@ impl TTY {
             }
             i += 1;
         }
+        self
     }
 
     /// Writes a colored character to the screen. Flushes the (single) character
-    pub fn cput(&mut self, pos: (usize, usize), c: Character) {
+    pub fn cput(&mut self, pos: (usize, usize), c: Character) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!(
                 "cput(({},{}), {{character}}): invalid position",
@@ -206,10 +210,11 @@ impl TTY {
             )
         }
         self.buff[pos.0 + pos.1 * vgatext::WIDTH] = c;
+        self
     }
 
     /// Writes an ascii character to the screen. Flushes the (single) character
-    pub fn put(&mut self, pos: (usize, usize), c: u8) {
+    pub fn put(&mut self, pos: (usize, usize), c: u8) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!(
                 "put(({},{}), {{character}}): invalid position",
@@ -218,11 +223,12 @@ impl TTY {
         }
         let c = Character::new(c, self.color());
         self.buff[pos.0 + pos.1 * vgatext::WIDTH] = c;
+        self
     }
 
     /// Writes a colored character to the screen. Also writes directly to video memory.
     /// Use this instead of immediately flushing, as it is much cheaper
-    pub fn cput_force(&mut self, pos: (usize, usize), c: Character) {
+    pub fn cput_force(&mut self, pos: (usize, usize), c: Character) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!(
                 "cput_force(({},{}), {{character}}): invalid position",
@@ -232,12 +238,13 @@ impl TTY {
         self.buff[pos.0 + pos.1 * vgatext::WIDTH] = c;
         if !self.is_copy {
             unsafe { vgatext::writechar(pos, c) }
-        };
+        }
+        self
     }
 
     /// Writes an ascii character to the screen. Also writes directly to video memory.
     /// Use this instead of flushing, as it is much cheaper
-    pub fn put_force(&mut self, pos: (usize, usize), c: u8) {
+    pub fn put_force(&mut self, pos: (usize, usize), c: u8) -> &mut Self {
         if pos.0 >= vgatext::WIDTH || pos.1 >= vgatext::HEIGHT {
             panic!(
                 "put_force(({},{}), {{character}}): invalid position",
@@ -248,7 +255,8 @@ impl TTY {
         self.buff[pos.0 + pos.1 * vgatext::WIDTH] = c;
         if !self.is_copy {
             unsafe { vgatext::writechar(pos, c) }
-        };
+        }
+        self
     }
 
     /// Get the buffered character, NOT necessarily the currently displayed one.
@@ -260,7 +268,7 @@ impl TTY {
     /// Append-Writes a colored Character.
     /// This is mainly used by the k* tty macros.
     /// If the TTY is full, it acts as a FIFO, discarding beginning characters.
-    pub fn append_char(&mut self, c: Character) {
+    pub fn append_char(&mut self, c: Character) -> &mut Self {
         if c.ascii() == b'\n' {
             if self.pos / vgatext::WIDTH == vgatext::HEIGHT - 1 {
                 self.buff.rotate_left(vgatext::WIDTH);
@@ -276,24 +284,26 @@ impl TTY {
             self.buff[self.pos] = c;
             self.pos += 1;
         }
+        self
     }
 
     /// Append-Writes an ascii string
     /// If the TTY is full, it acts as a FIFO, discarding beginning characters.
-    pub fn append_str(&mut self, c: &[u8]) {
+    pub fn append_str(&mut self, c: &[u8]) -> &mut Self {
         // optimization for bigger than TTY strings
         // TODO: Optimize more. Rotate up to max(remaining, 80)s chars at newline
         let count =
             (c.len() / (vgatext::WIDTH * vgatext::HEIGHT)) * vgatext::HEIGHT * vgatext::WIDTH;
         if count == 0 {
             for &b in c {
-                self.append_char(Character::from_ascii(b));
+                self.append_char(Character::new(b, self.col));
             }
         } else {
             for &b in &c[c.len() - (count * vgatext::WIDTH * vgatext::HEIGHT)..] {
-                self.append_char(Character::from_ascii(b))
+                self.append_char(Character::new(b, self.col));
             }
         }
+        self
     }
 
     /// Clears the entire screen with the given character and flushes it afterwards.
@@ -301,35 +311,44 @@ impl TTY {
     /// ```rust
     /// tty.clear(tty::Character::blank())
     /// ```
-    pub fn clear(&mut self, clear_char: Character) {
+    pub fn clear_char(&mut self, clear_char: Character) -> &mut Self {
         self.buff.fill(clear_char);
         self.flush();
         self.pos = 0;
+        self
+    }
+
+    /// Clears the entire screen using the default color's background
+    pub fn clear(&mut self) -> &mut Self {
+        self.clear_char(Character::new(b' ', self.col))
     }
 
     /// Resets the state of the TTY as it was at boot time
     /// Note: this does include clearing the screen
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self) -> &mut Self {
         self.pos = 0;
         self.col = TextColor::default();
         self.buff.fill(Character::blank());
         if !self.is_copy {
             vgatext::reset();
         }
+        self
     }
 
     /// Writes the character buffer to the actual video memory
-    pub fn flush(&self) {
+    pub fn flush(&mut self) -> &mut Self {
         if !self.is_copy {
             unsafe {
                 vgatext::write_at((0, 0), &self.buff);
             }
         }
+        self
     }
 
     /// Copies `other`s buffer. DOES NOT flush itself.
-    pub fn sync(&mut self, other: &TTY) {
+    pub fn sync(&mut self, other: &TTY) -> &mut Self {
         self.buff.copy_from_slice(&other.buff);
+        self
     }
 
     /// Copies itself. New TTY Instance DOES NOT sync with Video RAM
@@ -358,7 +377,7 @@ where
 
 lazy_static::lazy_static!(
     /// Thread safe, static handle to the TTY
-    static ref TTY_INSTANCE: spin::Mutex<TTY> = spin::Mutex::<TTY>::from((|| { 
+    static ref TTY_INSTANCE: spin::Mutex<TTY> = spin::Mutex::<TTY>::from((|| {
         vgatext::vga_init();
         TTY {
             pos: 0,
