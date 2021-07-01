@@ -1,5 +1,4 @@
-use crate::prelude::*;
-
+use crate::memio;
 /// VGA 4 Bit Colors
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -149,15 +148,16 @@ pub const WIDTH: usize = 80;
 pub fn vga_init() {
     unsafe {
         // disable cursor
-        memio::mmio_outb(0x3D4, 0xA);
-        memio::mmio_outb(0x3D5, 0x20);
+        memio::outb(0x3D4, 0xA);
+        memio::outb(0x3D5, 0x20);
 
         // disable blinking
-        memio::mmio_inb(0x3DA);
-        memio::mmio_outb(0x3C0, 0x30);
-        let state = memio::mmio_inb(0x3C1);
-        memio::mmio_outb(0x3C0, state & 0xF7);
+        memio::inb(0x3DA);
+        memio::outb(0x3C0, 0x30);
+        let state = memio::inb(0x3C1);
+        memio::outb(0x3C0, state & 0xF7);
     }
+    log::info!("Initialized the VGA TTY");
 }
 
 /// Write a slice of characters, starting from a specific character.

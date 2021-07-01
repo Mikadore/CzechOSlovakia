@@ -20,10 +20,10 @@ pub unsafe fn cast_slice<T>(src: &[T]) -> &[u8] {
     )
 }
 
-/// Read a byte from an MMIO `port`
+/// Write a byte to an MMIO `port`
 /// # Safety
 /// Validate that the port you write to is correct.
-pub unsafe fn mmio_outb(port: u16, val: u8) {
+pub unsafe fn outb(port: u16, val: u8) {
     asm!("
         out dx, al
     ", in("dx") port, in("al") val);
@@ -32,11 +32,51 @@ pub unsafe fn mmio_outb(port: u16, val: u8) {
 /// Read a byte from an MMIO `port`.
 /// # Safety
 /// Validate that the port you read from is correct.
-pub unsafe fn mmio_inb(port: u16) -> u8 {
+pub unsafe fn inb(port: u16) -> u8 {
     let mut out: u8;
     asm!("
         in al, dx
     ", in("dx") port, out("al") out);
+    out
+}
+
+/// Write a word to an MMIO `port`
+/// # Safety
+/// Validate that the port you write to is correct.
+pub unsafe fn outw(port: u16, val: u16) {
+    asm!("
+        out dx, al
+    ", in("dx") port, in("ax") val);
+}
+
+/// Read a word from an MMIO `port`.
+/// # Safety
+/// Validate that the port you read from is correct.
+pub unsafe fn inw(port: u16) -> u16 {
+    let mut out: u16;
+    asm!("
+        in ax, dx
+    ", in("dx") port, out("ax") out);
+    out
+}
+
+/// Write a double word to an MMIO `port`
+/// # Safety
+/// Validate that the port you write to is correct.
+pub unsafe fn outdw(port: u16, val: u32) {
+    asm!("
+        out dx, eax
+    ", in("dx") port, in("eax") val);
+}
+
+/// Read a double word from an MMIO `port`.
+/// # Safety
+/// Validate that the port you read from is correct.
+pub unsafe fn indw(port: u16) -> u32 {
+    let mut out: u32;
+    asm!("
+        in al, dx
+    ", in("dx") port, out("eax") out);
     out
 }
 

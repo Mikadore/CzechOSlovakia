@@ -376,27 +376,10 @@ impl TTY {
     }
 }
 
-pub fn format_apply<F>(apply: F, args: core::fmt::Arguments<'_>) -> core::fmt::Result
-where
-    F: FnMut(&str) -> core::fmt::Result,
-{
-    struct FakeWriter<F: FnMut(&str) -> core::fmt::Result> {
-        functor: F,
-    }
-    impl<F: FnMut(&str) -> core::fmt::Result> core::fmt::Write for FakeWriter<F> {
-        fn write_str(&mut self, s: &str) -> core::fmt::Result {
-            (self.functor)(s)
-        }
-    }
-    use core::fmt::Write;
-    FakeWriter { functor: apply }.write_fmt(args)
-}
-
 lazy_static::lazy_static!(
     /// Thread safe, static handle to the TTY
     static ref TTY_INSTANCE: spin::Mutex<TTY> = spin::Mutex::<TTY>::from((|| {
-        vgatext::vga_init();
-        TTY {
+         TTY {
             pos: 0,
             col: TextColor::default(),
             buff: [Character::blank();2000],
@@ -404,6 +387,11 @@ lazy_static::lazy_static!(
         }
     })());
 );
+
+/// Initializes the TTY
+pub fn init() {
+    vgatext::vga_init();
+}
 
 pub fn tty() -> &'static spin::Mutex<TTY> {
     &*TTY_INSTANCE
