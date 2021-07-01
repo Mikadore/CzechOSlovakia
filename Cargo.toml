@@ -3,14 +3,17 @@ name = "os"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+crate-type = ["staticlib"]
+
 [build-dependencies]
 nasm-rs = "0.2.0"
 
 [dependencies]
-bootloader = "0.9.8"
 spin = "0.9.1"
 static_assertions = "1.1.0"
 unroll = "0.1.5"
+log = "0.4.14"
 
 [dependencies.lazy_static]
 version = "1.4"

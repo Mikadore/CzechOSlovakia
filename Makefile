@@ -15,7 +15,7 @@ clean:
 	@rm -r build
 
 run: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso)
+	@qemu-system-x86_64 -cdrom $(iso) -serial stdio
 
 iso: $(iso)
 
@@ -26,10 +26,15 @@ $(iso): $(kernel) $(grub_cfg)
 	@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 	@rm -r build/isofiles
 
-$(kernel): $(assembly_object_files) $(linker_script)
-	@ld -n -T $(linker_script) -o $(kernel) $(assembly_object_files)
+$(kernel): kernel target/x86_64_target/release/libos.a $(assembly_object_files) $(linker_script)
+	@ld -n -T $(linker_script) -o $(kernel) \
+		$(assembly_object_files) target/x86_64_target/release/libos.a
+
 
 # compile assembly files
 build/boot/%.o: src/boot/%.asm
 	@mkdir -p $(shell dirname $@)
 	@nasm -felf64 $< -o $@
+
+kernel:
+	cargo build --release
