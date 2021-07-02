@@ -40,6 +40,8 @@ pub extern "C" fn kmain() -> ! {
     log::info!("Started up kernel and initialized logging");
     tty::init();
 
+    kprintln!("Hello World!");
+
     loop {
         unsafe {
             asm!("nop")

@@ -402,7 +402,7 @@ pub fn tty() -> &'static spin::Mutex<TTY> {
 macro_rules! kprint {
     ($($arg:tt)*) => {{
         let mut tty = $crate::tty::tty().lock();
-        $crate::tty::format_apply(|s| {
+        $crate::util::text::format_apply(|s| {
             if s.is_ascii() {
                 tty.append_str(s.as_bytes());
             } else {
